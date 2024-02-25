@@ -1,10 +1,36 @@
 const express = require ('express');
 const routerPerissions = express.Router();
 
+let authorizers = require('../data/authorizers');
 let permissions = require('../data/permissions');
 let users = require('../data/users');
+
 routerPerissions.get('/', (req, res) => {
     res.json(permissions)
+});
+// Put sirve para modificar datos que ya están creados.
+routerPerissions.put('/:id/approvedBy', (req, res) => {
+    let permissionId = req.params.id
+    let authorizerEmail = req.body.authorizerEmail
+    let authorizerPassword = req.body.authorizerPassword
+
+    // Autenticación
+    let authorizer = authorizers.find(a => a.email == authorizerEmail && a.password == authorizerPassword)
+    if (authorizer == undefined){
+        res.status(401).json({ error: 'No autorizado'})
+        return
+    }
+
+    // Validación
+    let permission = permissions.find( p => p.id == permissionId)
+    if (permissionId == undefined) {
+        res.status(400).json({ error: 'No permissionId'})
+        return
+    }
+    
+    permission.approvedBy.push(authorizer.id)
+
+    res.json(permission)
 });
 
 routerPerissions.post('/', (req, res) => {
@@ -38,7 +64,7 @@ routerPerissions.post('/', (req, res) => {
     permissions.push({
         id: lastId + 1,
         text: text,
-        approbedBy: [],
+        approvedBy: [],
         userId: listUsers[0].id
     })
     // Para devolver un JSON tiene que ser un objeto, una clave y un valor ------> 1 { clave: valor }

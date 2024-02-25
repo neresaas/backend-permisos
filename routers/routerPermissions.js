@@ -8,7 +8,7 @@ let users = require('../data/users');
 routerPerissions.get('/', (req, res) => {
     res.json(permissions)
 });
-// Put sirve para modificar datos que ya están creados.
+// PUT sirve para modificar datos que ya están creados.
 routerPerissions.put('/:id/approvedBy', (req, res) => {
     let permissionId = req.params.id
     let authorizerEmail = req.body.authorizerEmail
@@ -27,7 +27,7 @@ routerPerissions.put('/:id/approvedBy', (req, res) => {
         res.status(400).json({ error: 'No permissionId'})
         return
     }
-    
+
     permission.approvedBy.push(authorizer.id)
 
     res.json(permission)

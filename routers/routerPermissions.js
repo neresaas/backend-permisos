@@ -6,6 +6,13 @@ let permissions = require('../data/permissions');
 let users = require('../data/users');
 
 routerPerissions.get('/', (req, res) => {
+    let text = req.query.text
+    if (text != undefined) {
+        // El método includes te permite ver si el string incluye lo que le digas
+        let permissionsWithText = permissions.filter(p => p.text.includes(text))
+        res.json(permissionsWithText)
+        return
+    }
     res.json(permissions)
 });
 

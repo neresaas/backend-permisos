@@ -30,7 +30,27 @@ routerPerissions.get('/:id', (req, res) => {
     res.json(permission)
 });
 
-// PUT sirve para modificar datos que ya están creados.
+// PUT sirve para modificar datos que ya están creados
+routerPerissions.put('/:id', (req, res)=> {
+    let permissionId = req.params.id
+    if (permissionId == undefined){
+        res.status(400).json({error: 'no id'})
+        return
+    }
+    let permission = permissions.find(p => p.id == permissionId)
+    if (permission == undefined){
+        res.status(400).json({error: 'no permission with this id'})
+        return
+    }
+
+    let text = req.body.text
+    if (text != undefined){
+        permission.text = text
+    }
+
+    res.json({ modifiyed: true })
+});
+
 routerPerissions.put('/:id/approvedBy', (req, res) => {
     let permissionId = req.params.id
     let authorizerEmail = req.body.authorizerEmail
@@ -61,10 +81,10 @@ routerPerissions.post('/', (req, res) => {
     let userPassword = req.body.userPassword
 
     // Validación
-    let listUsers = users.filter(
+    let user = users.find(
         u => u.email == userEmail && u.password == userPassword)
 
-    if ( listUsers.length == 0 ){
+    if ( user == undefined ){
             res.status(401).json({ error: 'No autorizado'})
             return
         }
@@ -72,9 +92,6 @@ routerPerissions.post('/', (req, res) => {
     let errors = []
     if (text == undefined) {
         errors.push('No text in the body')
-    }
-    if (userId == undefined){
-        errors.push('No userId in the body')
     }
     if (errors.length > 0) {
         res.status(400).json({ errors: errors})
@@ -87,10 +104,28 @@ routerPerissions.post('/', (req, res) => {
         id: lastId + 1,
         text: text,
         approvedBy: [],
-        userId: listUsers[0].id
+        userId: user.id
     })
     // Para devolver un JSON tiene que ser un objeto, una clave y un valor ------> 1 { clave: valor }
     res.json({ id: lastId + 1 })
+});
+
+// DELETE sirve para eliminar datos
+routerPerissions.delete('/:id', (req, res) => {
+    let permissionId = req.params.id
+    if (permissionId == undefined){
+        res.status(400).json({error: 'no id'})
+        return
+    }
+    let permission = permissions.find(p => p.id == permissionId)
+    if (permission == undefined){
+        res.status(400).json({error: 'no permission with this id'})
+        return
+    }
+
+    permissions = permissions.filter(p => p.id != permissionId)
+    
+    res.json({ deleted: true })
 });
 
 module.exports = routerPerissions;

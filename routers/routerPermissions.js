@@ -1,12 +1,24 @@
 const express = require ('express');
 const routerPerissions = express.Router();
+let jwt = require('jsonwebtoken');
 
 let authorizers = require('../data/authorizers');
 let permissions = require('../data/permissions');
 let users = require('../data/users');
 
 routerPerissions.get('/', (req, res) => {
+    let apiKey = req.query.apiKey
+    let infoApiKey = null
+
+    try {
+        infoApiKey = jwt.verify(apiKey, 'secret')
+    } catch (error) {
+        res.status(401).json({error: 'invalid token'})
+        return
+    }
+
     let text = req.query.text
+
     if (text != undefined) {
         // El método includes te permite ver si el string incluye lo que le digas
         let permissionsWithText = permissions.filter(p => p.text.includes(text))
@@ -17,6 +29,16 @@ routerPerissions.get('/', (req, res) => {
 });
 
 routerPerissions.get('/:id', (req, res) => {
+    let apiKey = req.query.apiKey
+    let infoApiKey = null
+
+    try {
+        infoApiKey = jwt.verify(apiKey, 'secret')
+    } catch (error) {
+        res.status(401).json({error: 'invalid token'})
+        return
+    }
+
     let id = req.params.id
     if (id == undefined) {
         res.status(400).json({error: 'No id'})
@@ -32,12 +54,24 @@ routerPerissions.get('/:id', (req, res) => {
 
 // PUT sirve para modificar datos que ya están creados
 routerPerissions.put('/:id', (req, res)=> {
+    let apiKey = req.query.apiKey
+    let infoApiKey = null
+
+    try {
+        infoApiKey = jwt.verify(apiKey, 'secret')
+    } catch (error) {
+        res.status(401).json({error: 'invalid token'})
+        return
+    }
+
     let permissionId = req.params.id
     if (permissionId == undefined){
         res.status(400).json({error: 'no id'})
         return
     }
-    let permission = permissions.find(p => p.id == permissionId)
+    let permission = permissions.find(
+        p => p.id == permissionId && p.userId == infoApiKey.id)
+
     if (permission == undefined){
         res.status(400).json({error: 'no permission with this id'})
         return
@@ -52,16 +86,22 @@ routerPerissions.put('/:id', (req, res)=> {
 });
 
 routerPerissions.put('/:id/approvedBy', (req, res) => {
-    let permissionId = req.params.id
-    let authorizerEmail = req.body.authorizerEmail
-    let authorizerPassword = req.body.authorizerPassword
+    let apiKey = req.query.apiKey
+    let infoApiKey = null
 
-    // Autenticación
-    let authorizer = authorizers.find(a => a.email == authorizerEmail && a.password == authorizerPassword)
-    if (authorizer == undefined){
-        res.status(401).json({ error: 'No autorizado'})
+    try {
+        infoApiKey = jwt.verify(apiKey, 'secret')
+    } catch (error) {
+        res.status(401).json({error: 'invalid token'})
         return
     }
+    let user = users.find(u => u.id == infoApiKey.id)
+    if (user.role != 'admin'){
+        res.status(401).json({error: 'user is not an admin'})
+        return
+    }
+
+    let permissionId = req.params.id
 
     // Validación
     let permission = permissions.find( p => p.id == permissionId)
@@ -77,18 +117,17 @@ routerPerissions.put('/:id/approvedBy', (req, res) => {
 
 routerPerissions.post('/', (req, res) => {
     let text = req.body.text
-    let userEmail = req.body.userEmail
-    let userPassword = req.body.userPassword
 
-    // Validación
-    let user = users.find(
-        u => u.email == userEmail && u.password == userPassword)
+    let apiKey = req.query.apiKey
+    let infoApiKey = null
 
-    if ( user == undefined ){
-            res.status(401).json({ error: 'No autorizado'})
-            return
-        }
-    
+    try {
+        infoApiKey = jwt.verify(apiKey, 'secret')
+    } catch (error) {
+        res.status(401).json({error: 'invalid token'})
+        return
+    }
+
     let errors = []
     if (text == undefined) {
         errors.push('No text in the body')
@@ -104,7 +143,7 @@ routerPerissions.post('/', (req, res) => {
         id: lastId + 1,
         text: text,
         approvedBy: [],
-        userId: user.id
+        userId: infoApiKey.id
     })
     // Para devolver un JSON tiene que ser un objeto, una clave y un valor ------> 1 { clave: valor }
     res.json({ id: lastId + 1 })
@@ -112,6 +151,16 @@ routerPerissions.post('/', (req, res) => {
 
 // DELETE sirve para eliminar datos
 routerPerissions.delete('/:id', (req, res) => {
+    let apiKey = req.query.apiKey
+    let infoApiKey = null
+
+    try {
+        infoApiKey = jwt.verify(apiKey, 'secret')
+    } catch (error) {
+        res.status(401).json({error: 'invalid token'})
+        return
+    }
+
     let permissionId = req.params.id
     if (permissionId == undefined){
         res.status(400).json({error: 'no id'})

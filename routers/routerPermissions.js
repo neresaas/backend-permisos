@@ -2,21 +2,10 @@ const express = require ('express');
 const routerPerissions = express.Router();
 let jwt = require('jsonwebtoken');
 
-let authorizers = require('../data/authorizers');
 let permissions = require('../data/permissions');
 let users = require('../data/users');
 
 routerPerissions.get('/', (req, res) => {
-    let apiKey = req.query.apiKey
-    let infoApiKey = null
-
-    try {
-        infoApiKey = jwt.verify(apiKey, 'secret')
-    } catch (error) {
-        res.status(401).json({error: 'invalid token'})
-        return
-    }
-
     let text = req.query.text
 
     if (text != undefined) {
@@ -29,16 +18,6 @@ routerPerissions.get('/', (req, res) => {
 });
 
 routerPerissions.get('/:id', (req, res) => {
-    let apiKey = req.query.apiKey
-    let infoApiKey = null
-
-    try {
-        infoApiKey = jwt.verify(apiKey, 'secret')
-    } catch (error) {
-        res.status(401).json({error: 'invalid token'})
-        return
-    }
-
     let id = req.params.id
     if (id == undefined) {
         res.status(400).json({error: 'No id'})
@@ -52,81 +31,8 @@ routerPerissions.get('/:id', (req, res) => {
     res.json(permission)
 });
 
-// PUT sirve para modificar datos que ya están creados
-routerPerissions.put('/:id', (req, res)=> {
-    let apiKey = req.query.apiKey
-    let infoApiKey = null
-
-    try {
-        infoApiKey = jwt.verify(apiKey, 'secret')
-    } catch (error) {
-        res.status(401).json({error: 'invalid token'})
-        return
-    }
-
-    let permissionId = req.params.id
-    if (permissionId == undefined){
-        res.status(400).json({error: 'no id'})
-        return
-    }
-    let permission = permissions.find(
-        p => p.id == permissionId && p.userId == infoApiKey.id)
-
-    if (permission == undefined){
-        res.status(400).json({error: 'no permission with this id'})
-        return
-    }
-
-    let text = req.body.text
-    if (text != undefined){
-        permission.text = text
-    }
-
-    res.json({ modifiyed: true })
-});
-
-routerPerissions.put('/:id/approvedBy', (req, res) => {
-    let apiKey = req.query.apiKey
-    let infoApiKey = null
-
-    try {
-        infoApiKey = jwt.verify(apiKey, 'secret')
-    } catch (error) {
-        res.status(401).json({error: 'invalid token'})
-        return
-    }
-    let user = users.find(u => u.id == infoApiKey.id)
-    if (user.role != 'admin'){
-        res.status(401).json({error: 'user is not an admin'})
-        return
-    }
-
-    let permissionId = req.params.id
-
-    // Validación
-    let permission = permissions.find( p => p.id == permissionId)
-    if (permissionId == undefined) {
-        res.status(400).json({ error: 'No permissionId'})
-        return
-    }
-
-    permission.approvedBy.push(authorizer.id)
-
-    res.json(permission)
-});
-
 routerPerissions.post('/', (req, res) => {
     let text = req.body.text
-
-    let apiKey = req.query.apiKey
-    let infoApiKey = null
-
-    try {
-        infoApiKey = jwt.verify(apiKey, 'secret')
-    } catch (error) {
-        res.status(401).json({error: 'invalid token'})
-        return
-    }
 
     let errors = []
     if (text == undefined) {
@@ -143,32 +49,79 @@ routerPerissions.post('/', (req, res) => {
         id: lastId + 1,
         text: text,
         approvedBy: [],
-        userId: infoApiKey.id
+        userId: req.infoApiKey.id
     })
     // Para devolver un JSON tiene que ser un objeto, una clave y un valor ------> 1 { clave: valor }
     res.json({ id: lastId + 1 })
 });
 
-// DELETE sirve para eliminar datos
-routerPerissions.delete('/:id', (req, res) => {
-    let apiKey = req.query.apiKey
-    let infoApiKey = null
-
-    try {
-        infoApiKey = jwt.verify(apiKey, 'secret')
-    } catch (error) {
-        res.status(401).json({error: 'invalid token'})
-        return
-    }
-
+// PUT sirve para modificar datos que ya están creados
+routerPerissions.put('/:id', (req, res)=> {
     let permissionId = req.params.id
+
     if (permissionId == undefined){
         res.status(400).json({error: 'no id'})
         return
     }
-    let permission = permissions.find(p => p.id == permissionId)
+    let permission = permissions.find(
+        p => p.id == permissionId && p.userId == req.infoApiKey.id)
+
     if (permission == undefined){
         res.status(400).json({error: 'no permission with this id'})
+        return
+    }
+
+    let text = req.body.text
+    if (text != undefined){
+        permission.text = text
+    }
+
+    res.json({ modifiyed: true })
+});
+
+routerPerissions.put('/:id/approvedBy', (req, res) => {
+
+    let user = users.find(u => u.id == req.infoApiKey.id)
+
+    if (user.role != 'admin'){
+        res.status(401).json({error: 'user is not an admin'})
+        return
+    }
+
+    let permissionId = req.params.id
+
+    // Validación
+    if (permissionId == undefined) {
+        res.status(400).json({ error: 'No permissionId'})
+        return
+    }
+
+    let permission = permissions.find(p => p.id == permissionId)
+    permission.approvedBy.push(req.infoApiKey.id)
+
+    res.json(permission)
+});
+
+// DELETE sirve para eliminar datos
+routerPerissions.delete('/:id', (req, res) => {
+    let permissionId = req.params.id
+
+    if (permissionId == undefined){
+        res.status(400).json({error: 'no id'})
+        return
+    }
+
+    let permission = permissions.find(p => p.id == permissionId)
+
+    if (permission == undefined){
+        res.status(400).json({error: 'no permission with this id'})
+        return
+    }
+
+    let user = users.find(u => u.id == req.infoApiKey.id)
+
+    if (user.role == 'user' && permission.userId != req.infoApiKey.id) {
+        res.status(401).json({error: 'is not your permission'})
         return
     }
 

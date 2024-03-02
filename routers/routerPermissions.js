@@ -127,7 +127,7 @@ routerPerissions.delete('/:id', (req, res) => {
 
     permissions = permissions.filter(p => p.id != permissionId)
     
-    res.json({ deleted: true })
+    res.json({ deleted: true }) 
 });
 
 module.exports = routerPerissions;

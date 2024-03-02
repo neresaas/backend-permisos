@@ -5,6 +5,8 @@ let app = express();
 let port = 8081;
 // Lee datos del body que estén en formato json
 app.use(express.json());
+// Cualquier petición que llegue, primero se mirará si se puede resolver en la carpeta public
+app.use(express.static('public'));
 // Middleware
 app.use(['/permissions'], (req, res, next) => {
     console.log('Middleware execution')
